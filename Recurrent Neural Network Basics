@@ -1,0 +1,2318 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "034d2902",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "papermill": {
+     "duration": 0.004554,
+     "end_time": "2026-06-02T16:59:10.118094+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:10.113540+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "# Recurrent Neural Network\n",
+    "\n",
+    "A **Recurrent Neural Network (RNN)** is a type of neural network designed for **sequential data** where the order matters. Unlike standard feedforward neural networks, RNNs have a form of **memory** that allows them to use information from previous inputs while processing current inputs.\n",
+    "\n",
+    "RNNs are widely used in:\n",
+    "\n",
+    "* Natural language processing (text, translation, chatbots)\n",
+    "* Speech recognition\n",
+    "* Time-series forecasting\n",
+    "* Video analysis\n",
+    "* Music generation\n",
+    "\n",
+    "**Why Regular Neural Networks Struggle with Sequences**\n",
+    "\n",
+    "A normal feedforward neural network assumes:\n",
+    "\n",
+    "* Inputs are independent\n",
+    "* Input size is fixed\n",
+    "* No temporal relationship exists\n",
+    "\n",
+    "But many real-world problems are sequential:\n",
+    "\n",
+    "| Task                | Sequence Example                     |\n",
+    "| ------------------- | ------------------------------------ |\n",
+    "| Sentence prediction | \"I love deep ...\" → \"learning\"       |\n",
+    "| Stock prediction    | Yesterday affects today              |\n",
+    "| Speech recognition  | Previous sounds affect current sound |\n",
+    "| Weather forecasting | Past temperatures matter             |\n",
+    "\n",
+    "To solve this, we need a model that remembers previous information. That is where RNNs come in.\n",
+    "\n",
+    "## Core Idea\n",
+    "\n",
+    "An RNN processes data **step by step** while maintaining a hidden memory state.\n",
+    "\n",
+    "At each time step:\n",
+    "\n",
+    "1. It receives current input\n",
+    "2. Combines it with previous hidden state\n",
+    "3. Produces:\n",
+    "   * new hidden state\n",
+    "   * output\n",
+    "\n",
+    "### RNN Structure\n",
+    "\n",
+    "At time step $t$:\n",
+    "\n",
+    "* Input: $x_t$\n",
+    "* Hidden state: $h_t$\n",
+    "* Output: $y_t$\n",
+    "\n",
+    "The hidden state carries information from previous steps.\n",
+    "\n",
+    "\n",
+    "![CNN Architecture](https://raw.githubusercontent.com/masum184e/handbook-old/removed/images/rnn/rnn.png)\n",
+    "\n",
+    "### Mathematical Formulation\n",
+    "\n",
+    "The hidden state update is:\n",
+    "$$\n",
+    "h_t = \\tanh(W_{xh}x_t + W_{hh}h_{t-1} + b_h)\n",
+    "$$\n",
+    "Output computation:\n",
+    "$$\n",
+    "y_t = W_{hy}h_t + b_y\n",
+    "$$\n",
+    "Where:\n",
+    "\n",
+    "| Symbol     | Meaning                  |\n",
+    "| ---------- | ------------------------ |\n",
+    "| $x_t$      | Input at time ($t$)        |\n",
+    "| $h_t$      | Hidden state             |\n",
+    "| $W_{xh}$   | Input-to-hidden weights  |\n",
+    "| $W_{hh}$   | Hidden-to-hidden weights |\n",
+    "| $W_{hy}$   | Hidden-to-output weights |\n",
+    "| $b_h, b_y$ | Biases                   |\n",
+    "| $\\tanh$    | Activation function      |\n",
+    "\n",
+    "Mathematical intuition is same as basic neural network, just the equation is different. But introduces a recurrent state that makes the model time-dependent and shares parameters across time steps, which changes how information and gradients flow.\n",
+    "\n",
+    "### Understanding the “Memory”\n",
+    "\n",
+    "The hidden state acts like memory.\n",
+    "\n",
+    "Example sentence:\n",
+    "\n",
+    "> “The movie was not good”\n",
+    "\n",
+    "When predicting sentiment at “good”, the word “not” from earlier is important.\n",
+    "\n",
+    "The RNN hidden state stores contextual information from previous words.\n",
+    "\n",
+    "### Unrolling an RNN\n",
+    "\n",
+    "An RNN can be visualized as being “unrolled” through time.\n",
+    "\n",
+    "Example for sequence:\n",
+    "\n",
+    "$$\n",
+    "x_1, x_2, x_3\n",
+    "$$\n",
+    "\n",
+    "becomes:\n",
+    "\n",
+    "$$\n",
+    "h_0 \\rightarrow h_1 \\rightarrow h_2 \\rightarrow h_3\n",
+    "$$\n",
+    "\n",
+    "Each step shares the same weights.\n",
+    "\n",
+    "This weight sharing is important because:\n",
+    "\n",
+    "* Fewer parameters\n",
+    "* Handles variable-length sequences\n",
+    "* Learns temporal patterns\n",
+    "\n",
+    "## Types of RNN Architectures\n",
+    "\n",
+    "### One-to-One\n",
+    "\n",
+    "This is actually a standard neural network (not sequence modeling).\n",
+    "\n",
+    "Example: Image classification\n",
+    "\n",
+    "$$\n",
+    "x \\rightarrow y\n",
+    "$$\n",
+    "\n",
+    "This is NOT a sequence problem, so RNN is unnecessary in real life."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "c53c4bce",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-06-02T16:59:10.127106Z",
+     "iopub.status.busy": "2026-06-02T16:59:10.126707Z",
+     "iopub.status.idle": "2026-06-02T16:59:43.462471Z",
+     "shell.execute_reply": "2026-06-02T16:59:43.461454Z"
+    },
+    "papermill": {
+     "duration": 33.345822,
+     "end_time": "2026-06-02T16:59:43.467505+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:10.121683+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2026-06-02 16:59:12.498369: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:467] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered\n",
+      "WARNING: All log messages before absl::InitializeLog() is called are written to STDERR\n",
+      "E0000 00:00:1780419552.780572      16 cuda_dnn.cc:8579] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered\n",
+      "E0000 00:00:1780419552.855963      16 cuda_blas.cc:1407] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered\n",
+      "W0000 00:00:1780419553.543730      16 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.\n",
+      "W0000 00:00:1780419553.543786      16 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.\n",
+      "W0000 00:00:1780419553.543789      16 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.\n",
+      "W0000 00:00:1780419553.543792      16 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.\n",
+      "2026-06-02 16:59:43.370692: E external/local_xla/xla/stream_executor/cuda/cuda_platform.cc:51] failed call to cuInit: INTERNAL: CUDA error: Failed call to cuInit: UNKNOWN ERROR (303)\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\">Model: \"sequential\"</span>\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1mModel: \"sequential\"\u001b[0m\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\"> Layer (type)                    </span>┃<span style=\"font-weight: bold\"> Output Shape           </span>┃<span style=\"font-weight: bold\">       Param # </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ dense (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                   │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">16</span>)             │           <span style=\"color: #00af00; text-decoration-color: #00af00\">176</span> │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_1 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                 │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">1</span>)              │            <span style=\"color: #00af00; text-decoration-color: #00af00\">17</span> │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1mLayer (type)                   \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1mOutput Shape          \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      Param #\u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ dense (\u001b[38;5;33mDense\u001b[0m)                   │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m16\u001b[0m)             │           \u001b[38;5;34m176\u001b[0m │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_1 (\u001b[38;5;33mDense\u001b[0m)                 │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m1\u001b[0m)              │            \u001b[38;5;34m17\u001b[0m │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Total params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">193</span> (772.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Total params: \u001b[0m\u001b[38;5;34m193\u001b[0m (772.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">193</span> (772.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Trainable params: \u001b[0m\u001b[38;5;34m193\u001b[0m (772.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Non-trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Non-trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "from tensorflow.keras.models import Sequential\n",
+    "from tensorflow.keras.layers import Dense, Input\n",
+    "\n",
+    "model = Sequential([\n",
+    "    Input(shape=(10,)),\n",
+    "    Dense(16, activation='relu'),\n",
+    "    Dense(1, activation='sigmoid')\n",
+    "])\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c1e76c9f",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004351,
+     "end_time": "2026-06-02T16:59:43.476065+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.471714+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "### One-to-Many\n",
+    "\n",
+    "Single input → sequence output.\n",
+    "\n",
+    "Suppose one day's temperature predicts the next 3 days.\n",
+    "\n",
+    "$$\n",
+    "x \\rightarrow y_1,y_2,y_3\n",
+    "$$"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "eae27132",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-06-02T16:59:43.486483Z",
+     "iopub.status.busy": "2026-06-02T16:59:43.485898Z",
+     "iopub.status.idle": "2026-06-02T16:59:43.560206Z",
+     "shell.execute_reply": "2026-06-02T16:59:43.559334Z"
+    },
+    "papermill": {
+     "duration": 0.081861,
+     "end_time": "2026-06-02T16:59:43.562177+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.480316+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\">Model: \"sequential_1\"</span>\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1mModel: \"sequential_1\"\u001b[0m\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\"> Layer (type)                    </span>┃<span style=\"font-weight: bold\"> Output Shape           </span>┃<span style=\"font-weight: bold\">       Param # </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ dense_2 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                 │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">16</span>)             │           <span style=\"color: #00af00; text-decoration-color: #00af00\">144</span> │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ repeat_vector (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">RepeatVector</span>)    │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">5</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">16</span>)          │             <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ simple_rnn (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">SimpleRNN</span>)          │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">5</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">32</span>)          │         <span style=\"color: #00af00; text-decoration-color: #00af00\">1,568</span> │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ time_distributed                │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">5</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">10</span>)          │           <span style=\"color: #00af00; text-decoration-color: #00af00\">330</span> │\n",
+       "│ (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">TimeDistributed</span>)               │                        │               │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1mLayer (type)                   \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1mOutput Shape          \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      Param #\u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ dense_2 (\u001b[38;5;33mDense\u001b[0m)                 │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m16\u001b[0m)             │           \u001b[38;5;34m144\u001b[0m │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ repeat_vector (\u001b[38;5;33mRepeatVector\u001b[0m)    │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m5\u001b[0m, \u001b[38;5;34m16\u001b[0m)          │             \u001b[38;5;34m0\u001b[0m │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ simple_rnn (\u001b[38;5;33mSimpleRNN\u001b[0m)          │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m5\u001b[0m, \u001b[38;5;34m32\u001b[0m)          │         \u001b[38;5;34m1,568\u001b[0m │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ time_distributed                │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m5\u001b[0m, \u001b[38;5;34m10\u001b[0m)          │           \u001b[38;5;34m330\u001b[0m │\n",
+       "│ (\u001b[38;5;33mTimeDistributed\u001b[0m)               │                        │               │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Total params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">2,042</span> (7.98 KB)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Total params: \u001b[0m\u001b[38;5;34m2,042\u001b[0m (7.98 KB)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">2,042</span> (7.98 KB)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Trainable params: \u001b[0m\u001b[38;5;34m2,042\u001b[0m (7.98 KB)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Non-trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Non-trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "from tensorflow.keras.models import Sequential\n",
+    "from tensorflow.keras.layers import Dense, RepeatVector, SimpleRNN, TimeDistributed, Input\n",
+    "\n",
+    "timesteps = 5\n",
+    "\n",
+    "model = Sequential([\n",
+    "    Input(shape=(8,)),\n",
+    "    Dense(16, activation='relu'),\n",
+    "    RepeatVector(timesteps),\n",
+    "    SimpleRNN(32, return_sequences=True),\n",
+    "    TimeDistributed(Dense(10, activation='softmax'))\n",
+    "])\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "76a2b906",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004664,
+     "end_time": "2026-06-02T16:59:43.572399+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.567735+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "**RepeatVector**\n",
+    "\n",
+    "Repeats a single vector multiple times (copies it across time steps).\n",
+    "\n",
+    "* In a **one-to-many RNN**, you start with: One input → One vector`\n",
+    "* But RNN needs: `Sequence input (time steps)`\n",
+    "* So we *duplicate* the vector across time.\n",
+    "\n",
+    "Shape transformation\n",
+    "\n",
+    "* If input is: `(batch, features)`\n",
+    "* After RepeatVector: `(batch, timesteps, features)`\n",
+    "\n",
+    "If input:\n",
+    "\n",
+    "```\n",
+    "[0.5, 0.8]   → shape (features,)\n",
+    "```\n",
+    "\n",
+    "Output:\n",
+    "\n",
+    "```\n",
+    "[\n",
+    "  [0.5, 0.8],\n",
+    "  [0.5, 0.8],\n",
+    "  [0.5, 0.8],\n",
+    "  [0.5, 0.8]\n",
+    "]\n",
+    "```\n",
+    "\n",
+    "So it becomes a sequence of identical vectors.\n",
+    "\n",
+    "It is like saying:\n",
+    "\n",
+    "> “Take one idea and feed it step-by-step into a sequence model.”\n",
+    "\n",
+    "**TimeDistributed**\n",
+    "\n",
+    "Applies the same layer independently to every time step.\n",
+    "\n",
+    "RNN output is often:\n",
+    "\n",
+    "```\n",
+    "(batch, timesteps, features)\n",
+    "```\n",
+    "\n",
+    "But Dense layer normally expects:\n",
+    "\n",
+    "```\n",
+    "(batch, features)\n",
+    "```\n",
+    "\n",
+    "So we need a way to apply Dense to each timestep separately.\n",
+    "\n",
+    "Shape transformation\n",
+    "\n",
+    "* Input: `(batch, timesteps, features)`\n",
+    "* Output: `(batch, timesteps, output)`\n",
+    "\n",
+    "If input:\n",
+    "\n",
+    "```\n",
+    "[\n",
+    "  [h11, h12],\n",
+    "  [h21, h22],\n",
+    "  [h31, h32]\n",
+    "]\n",
+    "```\n",
+    "\n",
+    "Output:\n",
+    "\n",
+    "```\n",
+    "[\n",
+    "  [y11, y12, ..., y1_10],\n",
+    "  [y21, y22, ..., y2_10],\n",
+    "  [y31, y32, ..., y3_10]\n",
+    "]\n",
+    "```\n",
+    "\n",
+    "Each timestep is processed independently.\n",
+    "\n",
+    "\n",
+    "It is like:\n",
+    "\n",
+    "> “Apply the same classifier to every word in a sentence.”\n",
+    "\n",
+    "### Many-to-One\n",
+    "\n",
+    "Sequence input → single output.\n",
+    "\n",
+    "Example: Sentiment analysis\n",
+    "\n",
+    "$$\n",
+    "x_1,x_2,x_3 \\rightarrow y\n",
+    "$$"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "b762f5a7",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-06-02T16:59:43.582840Z",
+     "iopub.status.busy": "2026-06-02T16:59:43.582541Z",
+     "iopub.status.idle": "2026-06-02T16:59:43.626827Z",
+     "shell.execute_reply": "2026-06-02T16:59:43.625952Z"
+    },
+    "papermill": {
+     "duration": 0.05208,
+     "end_time": "2026-06-02T16:59:43.628929+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.576849+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\">Model: \"sequential_2\"</span>\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1mModel: \"sequential_2\"\u001b[0m\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\"> Layer (type)                    </span>┃<span style=\"font-weight: bold\"> Output Shape           </span>┃<span style=\"font-weight: bold\">       Param # </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ simple_rnn_1 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">SimpleRNN</span>)        │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">32</span>)             │         <span style=\"color: #00af00; text-decoration-color: #00af00\">1,312</span> │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_4 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                 │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">1</span>)              │            <span style=\"color: #00af00; text-decoration-color: #00af00\">33</span> │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1mLayer (type)                   \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1mOutput Shape          \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      Param #\u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ simple_rnn_1 (\u001b[38;5;33mSimpleRNN\u001b[0m)        │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m32\u001b[0m)             │         \u001b[38;5;34m1,312\u001b[0m │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_4 (\u001b[38;5;33mDense\u001b[0m)                 │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m1\u001b[0m)              │            \u001b[38;5;34m33\u001b[0m │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Total params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">1,345</span> (5.25 KB)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Total params: \u001b[0m\u001b[38;5;34m1,345\u001b[0m (5.25 KB)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">1,345</span> (5.25 KB)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Trainable params: \u001b[0m\u001b[38;5;34m1,345\u001b[0m (5.25 KB)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Non-trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Non-trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "from tensorflow.keras.models import Sequential\n",
+    "from tensorflow.keras.layers import SimpleRNN, Dense\n",
+    "\n",
+    "model = Sequential([\n",
+    "    Input(shape=(6, 8)),\n",
+    "    SimpleRNN(32),\n",
+    "    Dense(1, activation='sigmoid')\n",
+    "])\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b1b4d6e3",
+   "metadata": {
+    "papermill": {
+     "duration": 0.005136,
+     "end_time": "2026-06-02T16:59:43.639379+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.634243+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "### Many-to-Many\n",
+    "\n",
+    "Sequence input → sequence output.\n",
+    "\n",
+    "Example: Machine translation, POS Tagging\n",
+    "\n",
+    "$$\n",
+    "x_1,x_2 \\rightarrow y_1,y_2,y_3\n",
+    "$$"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "51faf84f",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-06-02T16:59:43.650956Z",
+     "iopub.status.busy": "2026-06-02T16:59:43.650595Z",
+     "iopub.status.idle": "2026-06-02T16:59:43.692637Z",
+     "shell.execute_reply": "2026-06-02T16:59:43.691671Z"
+    },
+    "papermill": {
+     "duration": 0.050221,
+     "end_time": "2026-06-02T16:59:43.694546+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.644325+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\">Model: \"sequential_3\"</span>\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1mModel: \"sequential_3\"\u001b[0m\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\"> Layer (type)                    </span>┃<span style=\"font-weight: bold\"> Output Shape           </span>┃<span style=\"font-weight: bold\">       Param # </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ simple_rnn_2 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">SimpleRNN</span>)        │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">6</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">32</span>)          │         <span style=\"color: #00af00; text-decoration-color: #00af00\">1,312</span> │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ time_distributed_1              │ (<span style=\"color: #00d7ff; text-decoration-color: #00d7ff\">None</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">6</span>, <span style=\"color: #00af00; text-decoration-color: #00af00\">10</span>)          │           <span style=\"color: #00af00; text-decoration-color: #00af00\">330</span> │\n",
+       "│ (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">TimeDistributed</span>)               │                        │               │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1mLayer (type)                   \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1mOutput Shape          \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      Param #\u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ simple_rnn_2 (\u001b[38;5;33mSimpleRNN\u001b[0m)        │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m6\u001b[0m, \u001b[38;5;34m32\u001b[0m)          │         \u001b[38;5;34m1,312\u001b[0m │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ time_distributed_1              │ (\u001b[38;5;45mNone\u001b[0m, \u001b[38;5;34m6\u001b[0m, \u001b[38;5;34m10\u001b[0m)          │           \u001b[38;5;34m330\u001b[0m │\n",
+       "│ (\u001b[38;5;33mTimeDistributed\u001b[0m)               │                        │               │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Total params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">1,642</span> (6.41 KB)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Total params: \u001b[0m\u001b[38;5;34m1,642\u001b[0m (6.41 KB)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">1,642</span> (6.41 KB)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Trainable params: \u001b[0m\u001b[38;5;34m1,642\u001b[0m (6.41 KB)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Non-trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Non-trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "from tensorflow.keras.models import Sequential\n",
+    "from tensorflow.keras.layers import SimpleRNN, Dense, TimeDistributed, Input\n",
+    "\n",
+    "model = Sequential([\n",
+    "    Input(shape=(6, 8)),\n",
+    "    SimpleRNN(32, return_sequences=True),\n",
+    "    TimeDistributed(Dense(10, activation='softmax'))\n",
+    "])\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fe96d7de",
+   "metadata": {
+    "papermill": {
+     "duration": 0.005335,
+     "end_time": "2026-06-02T16:59:43.705476+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.700141+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "### Main Differences\n",
+    "\n",
+    "| Type         | Input    | Output   | Uses Sequence? | Example              |\n",
+    "| ------------ | -------- | -------- | -------------- | -------------------- |\n",
+    "| One-to-One   | Single   | Single   | No             | Image classification |\n",
+    "| One-to-Many  | Single   | Sequence | Output only    | Caption generation   |\n",
+    "| Many-to-One  | Sequence | Single   | Input only     | Sentiment analysis   |\n",
+    "| Many-to-Many | Sequence | Sequence | Both           | Translation          |\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1338490d",
+   "metadata": {
+    "papermill": {
+     "duration": 0.005242,
+     "end_time": "2026-06-02T16:59:43.716135+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.710893+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Example Walkthrough\n",
+    "\n",
+    "Suppose we train an RNN on text. Input sentence: `“I love deep learning”`. We want the network to predict the next word.\n",
+    "\n",
+    "### Step-by-Step Process\n",
+    "\n",
+    "#### Tokenization\n",
+    "\n",
+    "Words become tokens:\n",
+    "\n",
+    "| Word     | Token |\n",
+    "| -------- | ----- |\n",
+    "| I        | 1     |\n",
+    "| love     | 2     |\n",
+    "| deep     | 3     |\n",
+    "| learning | 4     |\n",
+    "\n",
+    "#### Embedding\n",
+    "\n",
+    "Each word converts into a vector.\n",
+    "\n",
+    "| Word | Vector     |\n",
+    "| ---- | ---------- |\n",
+    "| I    | [0.1, 0.2] |\n",
+    "| love | [0.7, 0.9] |\n",
+    "| deep | [0.4, 0.6] |\n",
+    "\n",
+    "The vectors are initiliazed during training. It is random at start, then learned from data through repeated error correction.\n",
+    "\n",
+    "#### Sequential Processing\n",
+    "\n",
+    "At each step:\n",
+    "\n",
+    "1. Time 1\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_1 = \\text{\"I\"}\n",
+    "$$\n",
+    "\n",
+    "Hidden state:\n",
+    "\n",
+    "$$\n",
+    "h_1 = f(x_1, h_0)\n",
+    "$$\n",
+    "\n",
+    "2. Time 2\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_2 = \\text{\"love\"}\n",
+    "$$\n",
+    "\n",
+    "Now the network remembers “I”.\n",
+    "\n",
+    "$$\n",
+    "h_2 = f(x_2, h_1)\n",
+    "$$\n",
+    "\n",
+    "3. Time 3\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_3 = \\text{\"deep\"}\n",
+    "$$\n",
+    "\n",
+    "Now memory contains:\n",
+    "\n",
+    "* I\n",
+    "* love\n",
+    "* deep\n",
+    "\n",
+    "4. Predict Next Word\n",
+    "\n",
+    "The network outputs probabilities:\n",
+    "\n",
+    "| Word     | Probability |\n",
+    "| -------- | ----------- |\n",
+    "| learning | 0.92        |\n",
+    "| neural   | 0.04        |\n",
+    "| networks | 0.02        |\n",
+    "\n",
+    "Prediction: `learning`\n",
+    "\n",
+    "## Training an RNN\n",
+    "\n",
+    "RNNs are trained using:\n",
+    "\n",
+    "### Backpropagation Through Time (BPTT)\n",
+    "\n",
+    "It is an extension of backpropagation for sequences.\n",
+    "\n",
+    "The network:\n",
+    "\n",
+    "1. Unrolls through time\n",
+    "2. Computes loss at each step\n",
+    "3. Propagates gradients backward through all time steps\n",
+    "\n",
+    "## Major Problems with Vanilla RNNs\n",
+    "\n",
+    "### Vanishing Gradient Problem\n",
+    "\n",
+    "Gradients become extremely small during backpropagation.\n",
+    "\n",
+    "Result:\n",
+    "\n",
+    "* Early information is forgotten\n",
+    "* Long-term dependencies cannot be learned\n",
+    "\n",
+    "Example:\n",
+    "\n",
+    "> “I grew up in France ... I speak fluent French”\n",
+    "\n",
+    "The word “France” may be forgotten before reaching “French”.\n",
+    "\n",
+    "### Exploding Gradients\n",
+    "\n",
+    "Gradients become extremely large.\n",
+    "\n",
+    "Result:\n",
+    "\n",
+    "* Unstable training\n",
+    "* Numerical overflow\n",
+    "\n",
+    "Solutions:\n",
+    "\n",
+    "* Gradient clipping\n",
+    "\n",
+    "## Solution\n",
+    "\n",
+    "To solve memory issues, researchers developed:\n",
+    "\n",
+    "### Long Short-Term Memory (LSTM)\n",
+    "\n",
+    "LSTMs use gates:\n",
+    "\n",
+    "* Forget gate\n",
+    "* Input gate\n",
+    "* Output gate\n",
+    "\n",
+    "These gates control information flow.\n",
+    "\n",
+    "LSTMs can remember information for long periods.\n",
+    "\n",
+    "Used heavily in:\n",
+    "\n",
+    "* Translation\n",
+    "* Speech systems\n",
+    "* Text generation\n",
+    "\n",
+    "#### Gated Recurrent Unit (GRU)\n",
+    "\n",
+    "GRU is a simplified version of LSTM.\n",
+    "\n",
+    "Advantages:\n",
+    "\n",
+    "* Faster\n",
+    "* Fewer parameters\n",
+    "* Often similar performance\n",
+    "\n",
+    "## Charecterstics\n",
+    "\n",
+    "### Advantages\n",
+    "\n",
+    "| Advantage              | Description               |\n",
+    "| ---------------------- | ------------------------- |\n",
+    "| Handles sequences      | Designed for ordered data |\n",
+    "| Shared weights         | Efficient parameter usage |\n",
+    "| Variable-length inputs | Flexible                  |\n",
+    "| Temporal memory        | Captures dependencies     |\n",
+    "\n",
+    "### Limitations\n",
+    "\n",
+    "| Limitation             | Description                             |\n",
+    "| ---------------------- | --------------------------------------- |\n",
+    "| Vanishing gradients    | Hard to learn long-term patterns        |\n",
+    "| Slow training          | Sequential computation                  |\n",
+    "| Poor long-range memory | Basic RNN limitation                    |\n",
+    "| Hard parallelization   | Cannot process all steps simultaneously |\n",
+    "\n",
+    "### RNN vs LSTM vs GRU\n",
+    "\n",
+    "| Feature           | RNN  | LSTM      | GRU       |\n",
+    "| ----------------- | ---- | --------- | --------- |\n",
+    "| Memory capability | Weak | Strong    | Strong    |\n",
+    "| Complexity        | Low  | High      | Medium    |\n",
+    "| Speed             | Fast | Slow      | Faster    |\n",
+    "| Long sequences    | Poor | Excellent | Very good |\n",
+    "\n",
+    "### RNN vs Transformers\n",
+    "\n",
+    "Modern AI systems increasingly use Transformers instead of RNNs.\n",
+    "\n",
+    "Examples:\n",
+    "\n",
+    "* Google BERT\n",
+    "* OpenAI GPT\n",
+    "\n",
+    "Why Transformers are preferred:\n",
+    "\n",
+    "| Transformers               | RNNs              |\n",
+    "| -------------------------- | ----------------- |\n",
+    "| Parallel processing        | Sequential        |\n",
+    "| Better long-range learning | Weak long memory  |\n",
+    "| Faster training            | Slower            |\n",
+    "| Attention mechanism        | Hidden state only |\n",
+    "\n",
+    "Still, RNNs remain useful for:\n",
+    "\n",
+    "* small datasets\n",
+    "* lightweight systems\n",
+    "* streaming sequence data\n",
+    "* embedded devices\n",
+    "\n",
+    "\n",
+    "# Long Short-Term Memory\n",
+    "\n",
+    "LSTM is a special kind of RNN introduced to solve long-term memory problems.\n",
+    "\n",
+    "**Main idea:** Instead of one hidden state, LSTM uses:\n",
+    "\n",
+    "1. **Cell state** → long-term memory\n",
+    "2. **Hidden state** → short-term output\n",
+    "\n",
+    "LSTM carefully controls information using **gates**.\n",
+    "\n",
+    "**Intuition of LSTM**\n",
+    "\n",
+    "Think of LSTM as a smart memory system that can:\n",
+    "\n",
+    "* remember important information\n",
+    "* forget useless information\n",
+    "* update memory selectively\n",
+    "\n",
+    "This is done using gates.\n",
+    "\n",
+    "**Why LSTM Works Better Than RNN**\n",
+    "\n",
+    "The cell state allows gradients to flow more easily.\n",
+    "\n",
+    "This reduces:\n",
+    "\n",
+    "* vanishing gradients\n",
+    "* forgetting old information\n",
+    "\n",
+    "So LSTM can learn:\n",
+    "\n",
+    "* context\n",
+    "* grammar\n",
+    "* dependencies\n",
+    "* time relationships\n",
+    "\n",
+    "over long sequences.\n",
+    "\n",
+    "## Components of LSTM\n",
+    "\n",
+    "An LSTM cell contains:\n",
+    "\n",
+    "| Component   | Purpose                  |\n",
+    "| ----------- | ------------------------ |\n",
+    "| Forget Gate | Removes unnecessary info |\n",
+    "| Input Gate  | Adds new useful info     |\n",
+    "| Cell State  | Long-term memory         |\n",
+    "| Output Gate | Produces output          |\n",
+    "\n",
+    "## LSTM Architecture\n",
+    "\n",
+    "At time step $t$:\n",
+    "\n",
+    "Inputs:\n",
+    "\n",
+    "* current input $x_t$\n",
+    "* previous hidden state $h_{t-1}$\n",
+    "* previous cell state $C_{t-1}$\n",
+    "\n",
+    "Outputs:\n",
+    "\n",
+    "* new hidden state $h_t$\n",
+    "* new cell state $C_t$\n",
+    "\n",
+    "![RNN Architecture](https://raw.githubusercontent.com/masum184e/handbook-old/removed/images/rnn/lstm.png)\n",
+    "\n",
+    "## LSTM Mathematics\n",
+    "\n",
+    "$$\n",
+    "C_t = f_t \\odot C_{t-1} + i_t \\odot \\tilde{C}_t\n",
+    "$$\n",
+    "\n",
+    "This is the heart of LSTM.\n",
+    "\n",
+    "### Forget Gate\n",
+    "\n",
+    "Decides what information to throw away.\n",
+    "$$\n",
+    "f_t = \\sigma(W_f[h_{t-1},x_t] + b_f)\n",
+    "$$\n",
+    "Where:\n",
+    "\n",
+    "* $\\sigma$ = sigmoid function\n",
+    "* output range = 0 to 1\n",
+    "\n",
+    "It controls how much old memory survives.\n",
+    "\n",
+    "Interpretation:  \n",
+    "\n",
+    "* 0 → forget completely\n",
+    "* 1 → keep completely\n",
+    "\n",
+    "### Input Gate\n",
+    "\n",
+    "Determines what new information to store.\n",
+    "\n",
+    "$$\n",
+    "i_t = \\sigma(W_i[h_{t-1},x_t] + b_i)\n",
+    "$$\n",
+    "\n",
+    "* controls how much new info is written\n",
+    "\n",
+    "### Candidate memory\n",
+    "\n",
+    "$$\n",
+    "\\tilde{C}_t = \\tanh(W_c [h*{t-1}, x_t] + b_c)\n",
+    "$$\n",
+    "\n",
+    "* new information proposal\n",
+    "* can be positive or negative\n",
+    "\n",
+    "### Update Cell State\n",
+    "\n",
+    "Old memory updated with new memory.\n",
+    "$$\n",
+    "C_t = f_t \\odot C_{t-1} + i_t \\odot \\tilde{C}_t\n",
+    "$$\n",
+    "This is the key innovation of LSTM. The cell state acts like a conveyor belt carrying information through time with minimal modification.\n",
+    "\n",
+    "> old memory (scaled) + new memory (scaled)\n",
+    "\n",
+    "### Output Gate\n",
+    "\n",
+    "Determines what to output.\n",
+    "\n",
+    "**Output gate:**\n",
+    "\n",
+    "$$\n",
+    "o_t = \\sigma(W_o [h_{t-1}, x_t] + b_o)\n",
+    "$$\n",
+    "**Hidden state:**\n",
+    "$$\n",
+    "h_t = o_t \\odot \\tanh(C_t)\n",
+    "$$\n",
+    "\n",
+    "* memory is stored in ($C_t$)\n",
+    "* output is filtered version of it\n",
+    "\n",
+    "### The key mathematical intuition\n",
+    "\n",
+    "**Think of LSTM as a *soft memory controller***\n",
+    "\n",
+    "Each gate is a number between 0 and 1:\n",
+    "\n",
+    "| Gate  | Meaning                       |\n",
+    "| ----- | ----------------------------- |\n",
+    "| ($f_t$) | how much to forget old memory |\n",
+    "| ($i_t$) | how much new info to write    |\n",
+    "| ($o_t$) | how much memory to show       |\n",
+    "\n",
+    "So LSTM is basically:\n",
+    "\n",
+    "> **weighted addition + learned filtering**\n",
+    "\n",
+    "You can think of LSTM as:\n",
+    "\n",
+    "$$\n",
+    "\\text{Memory}_t = (\\text{forget factor}) \\cdot \\text{old memory} + (\\text{input factor}) \\cdot \\text{new info}\n",
+    "$$\n",
+    "\n",
+    "That’s it.\n",
+    "\n",
+    "Everything else is just learning how to set those factors.\n",
+    "\n",
+    "## Example Walkthrough\n",
+    "\n",
+    "Suppose sequence:\n",
+    "```\n",
+    "[\"I\", \"love\", \"deep\", \"learning\"]\n",
+    "```\n",
+    "Word embeddings become vectors:\n",
+    "\n",
+    "$$\n",
+    "x_1, x_2, x_3, x_4\n",
+    "$$\n",
+    "\n",
+    "1. Time Step 1\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_1 = I\n",
+    "$$\n",
+    "\n",
+    "LSTM initializes:\n",
+    "\n",
+    "* hidden state ($h_0$)\n",
+    "* cell state ($C_0$)\n",
+    "\n",
+    "After processing:\n",
+    "\n",
+    "* $h_1$\n",
+    "* $C_1$\n",
+    "\n",
+    "store information about “I”.\n",
+    "\n",
+    "2. Time Step 2\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_2 = love\n",
+    "$$\n",
+    "\n",
+    "LSTM updates memory:\n",
+    "\n",
+    "* remembers subject “I”\n",
+    "* adds emotion “love”\n",
+    "\n",
+    "Cell state now contains semantic meaning:\n",
+    "\n",
+    "> “I love”\n",
+    "\n",
+    "3. Time Step 3\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_3 = deep\n",
+    "$$\n",
+    "\n",
+    "Updates context.\n",
+    "\n",
+    "4. Time Step 4\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_4 = learning\n",
+    "$$\n",
+    "\n",
+    "Now memory contains meaning of full phrase:\n",
+    "\n",
+    "> “I love deep learning”\n",
+    "\n",
+    "Final hidden state used for:\n",
+    "\n",
+    "* classification\n",
+    "* translation\n",
+    "* next-word prediction\n",
+    "\n",
+    "## Bidirectional LSTM\n",
+    "\n",
+    "Normal LSTM reads:\n",
+    "\n",
+    "* Left → Right\n",
+    "\n",
+    "Bidirectional LSTM reads:\n",
+    "\n",
+    "* Left → Right\n",
+    "* Right → Left\n",
+    "\n",
+    "Useful in NLP because future words also provide context.\n",
+    "\n",
+    "Example:\n",
+    "\n",
+    "> “bank”\n",
+    "\n",
+    "Meaning depends on later words:\n",
+    "\n",
+    "* river bank\n",
+    "* bank account\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "382b99a5",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-06-02T16:59:43.730940Z",
+     "iopub.status.busy": "2026-06-02T16:59:43.730564Z",
+     "iopub.status.idle": "2026-06-02T16:59:43.783751Z",
+     "shell.execute_reply": "2026-06-02T16:59:43.782990Z"
+    },
+    "papermill": {
+     "duration": 0.063088,
+     "end_time": "2026-06-02T16:59:43.785674+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.722586+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/usr/local/lib/python3.12/dist-packages/keras/src/layers/core/embedding.py:97: UserWarning: Argument `input_length` is deprecated. Just remove it.\n",
+      "  warnings.warn(\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\">Model: \"sequential_4\"</span>\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1mModel: \"sequential_4\"\u001b[0m\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\"> Layer (type)                    </span>┃<span style=\"font-weight: bold\"> Output Shape           </span>┃<span style=\"font-weight: bold\">       Param # </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ embedding (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Embedding</span>)           │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ bidirectional (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Bidirectional</span>)   │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_6 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                 │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_7 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                 │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1mLayer (type)                   \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1mOutput Shape          \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      Param #\u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ embedding (\u001b[38;5;33mEmbedding\u001b[0m)           │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ bidirectional (\u001b[38;5;33mBidirectional\u001b[0m)   │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_6 (\u001b[38;5;33mDense\u001b[0m)                 │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_7 (\u001b[38;5;33mDense\u001b[0m)                 │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Total params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Total params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Non-trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Non-trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "import tensorflow as tf\n",
+    "from tensorflow.keras.models import Sequential\n",
+    "from tensorflow.keras.layers import Embedding, LSTM, Bidirectional, Dense\n",
+    "\n",
+    "vocab_size = 10000\n",
+    "embedding_dim = 128\n",
+    "max_length = 200\n",
+    "\n",
+    "model = Sequential([\n",
+    "    Embedding(vocab_size, embedding_dim, input_length=max_length),\n",
+    "\n",
+    "    Bidirectional(LSTM(128)),\n",
+    "\n",
+    "    Dense(64, activation='relu'),\n",
+    "    Dense(1, activation='sigmoid')\n",
+    "])\n",
+    "\n",
+    "model.compile(\n",
+    "    optimizer='adam',\n",
+    "    loss='binary_crossentropy',\n",
+    "    metrics=['accuracy']\n",
+    ")\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c152a364",
+   "metadata": {
+    "papermill": {
+     "duration": 0.005952,
+     "end_time": "2026-06-02T16:59:43.797651+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.791699+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "\n",
+    "## Stacked LSTM\n",
+    "\n",
+    "Multiple LSTM layers stacked together.\n",
+    "\n",
+    "Lower layers learn:\n",
+    "\n",
+    "* simple patterns\n",
+    "\n",
+    "Higher layers learn:\n",
+    "\n",
+    "* complex semantics"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "26cb12e4",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-06-02T16:59:43.812422Z",
+     "iopub.status.busy": "2026-06-02T16:59:43.812092Z",
+     "iopub.status.idle": "2026-06-02T16:59:43.846349Z",
+     "shell.execute_reply": "2026-06-02T16:59:43.845332Z"
+    },
+    "papermill": {
+     "duration": 0.04495,
+     "end_time": "2026-06-02T16:59:43.848489+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.803539+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\">Model: \"sequential_5\"</span>\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1mModel: \"sequential_5\"\u001b[0m\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\"> Layer (type)                    </span>┃<span style=\"font-weight: bold\"> Output Shape           </span>┃<span style=\"font-weight: bold\">       Param # </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ embedding_1 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Embedding</span>)         │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ lstm_1 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">LSTM</span>)                   │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ lstm_2 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">LSTM</span>)                   │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_8 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                 │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_9 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                 │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1mLayer (type)                   \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1mOutput Shape          \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      Param #\u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ embedding_1 (\u001b[38;5;33mEmbedding\u001b[0m)         │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ lstm_1 (\u001b[38;5;33mLSTM\u001b[0m)                   │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ lstm_2 (\u001b[38;5;33mLSTM\u001b[0m)                   │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_8 (\u001b[38;5;33mDense\u001b[0m)                 │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_9 (\u001b[38;5;33mDense\u001b[0m)                 │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Total params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Total params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Non-trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Non-trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "model = Sequential([\n",
+    "    Embedding(vocab_size, embedding_dim, input_length=max_length),\n",
+    "\n",
+    "    LSTM(128, return_sequences=True),\n",
+    "    LSTM(64),\n",
+    "\n",
+    "    Dense(64, activation='relu'),\n",
+    "    Dense(1, activation='sigmoid')\n",
+    "])\n",
+    "\n",
+    "model.compile(\n",
+    "    optimizer='adam',\n",
+    "    loss='binary_crossentropy',\n",
+    "    metrics=['accuracy']\n",
+    ")\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7bf3c520",
+   "metadata": {
+    "papermill": {
+     "duration": 0.006575,
+     "end_time": "2026-06-02T16:59:43.861971+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.855396+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Charecterstics\n",
+    "\n",
+    "### Comparison:RNN vs LSTM\n",
+    "\n",
+    "| Feature                | RNN        | LSTM              |\n",
+    "| ---------------------- | ---------- | ----------------- |\n",
+    "| Memory                 | Short-term | Long + short-term |\n",
+    "| Handles long sequences | Poorly     | Very well         |\n",
+    "| Vanishing gradient     | Severe     | Reduced           |\n",
+    "| Complexity             | Simple     | More complex      |\n",
+    "| Training speed         | Faster     | Slower            |\n",
+    "| Accuracy               | Lower      | Higher            |\n",
+    "\n",
+    "# Gated Recurrent Unit\n",
+    "\n",
+    "It is a type of **Recurrent Neural Network (RNN)** introduced to solve the major problem of standard RNNs:\n",
+    "\n",
+    "* vanishing gradients\n",
+    "* poor long-term memory\n",
+    "\n",
+    "GRU was proposed as a simpler alternative to LSTM.\n",
+    "\n",
+    "**Evolution: RNN → LSTM → GRU**\n",
+    "\n",
+    "| Model | Memory Handling         |\n",
+    "| ----- | ----------------------- |\n",
+    "| RNN   | Simple hidden state     |\n",
+    "| LSTM  | Cell state + gates      |\n",
+    "| GRU   | Simplified gated memory |\n",
+    "\n",
+    "GRU keeps the advantages of LSTM while using:\n",
+    "\n",
+    "* fewer parameters\n",
+    "* simpler architecture\n",
+    "* faster training\n",
+    "\n",
+    "**Main Idea of GRU**\n",
+    "\n",
+    "GRU introduces **gates** to control information flow.\n",
+    "\n",
+    "Unlike LSTM:\n",
+    "\n",
+    "* no separate cell state\n",
+    "* hidden state itself acts as memory\n",
+    "\n",
+    "GRU uses only:\n",
+    "\n",
+    "1. Update Gate\n",
+    "2. Reset Gate\n",
+    "\n",
+    "This simplicity makes GRU computationally efficient.\n",
+    "\n",
+    "## GRU Architecture\n",
+    "\n",
+    "At time step $t$:\n",
+    "\n",
+    "Inputs:\n",
+    "\n",
+    "* current input ($x_t$)\n",
+    "* previous hidden state ($h_{t-1}$)\n",
+    "\n",
+    "Output:\n",
+    "\n",
+    "* new hidden state ($h_t$)\n",
+    "\n",
+    "![GRU Architecture](https://raw.githubusercontent.com/masum184e/handbook-old/removed/images/rnn/gru.png)\n",
+    "\n",
+    "**Core Components of GRU**\n",
+    "\n",
+    "| Gate            | Purpose                            |\n",
+    "| --------------- | ---------------------------------- |\n",
+    "| Update Gate     | How much old memory to keep        |\n",
+    "| Reset Gate      | How much old information to forget |\n",
+    "| Candidate State | New information                    |\n",
+    "| Hidden State    | Final memory/output                |\n",
+    "\n",
+    "### Update Gate\n",
+    "\n",
+    "Determines how much previous memory should be preserved.\n",
+    "$$\n",
+    "z_t = \\sigma(W_z x_t + U_z h_{t-1})\n",
+    "$$\n",
+    "Where:\n",
+    "\n",
+    "* $z_t$ = update gate\n",
+    "* $\\sigma$ = sigmoid function\n",
+    "\n",
+    "Output range:\n",
+    "\n",
+    "$$\n",
+    "0 \\rightarrow 1\n",
+    "$$\n",
+    "\n",
+    "Interpretation:\n",
+    "\n",
+    "* close to 1 → keep old memory\n",
+    "* close to 0 → replace with new memory\n",
+    "\n",
+    "### Reset Gate\n",
+    "\n",
+    "Controls how much previous information to forget.\n",
+    "$$\n",
+    "r_t = \\sigma(W_r x_t + U_r h_{t-1})\n",
+    "$$\n",
+    "Interpretation:\n",
+    "\n",
+    "* small value → ignore previous memory\n",
+    "* large value → use previous memory heavily\n",
+    "\n",
+    "### Candidate Hidden State\n",
+    "\n",
+    "Creates new candidate memory.\n",
+    "$$\n",
+    "\\tilde{h} \\odot t = \\tanh(W_h x_t + U_h(r_t * h*{t-1}))\n",
+    "$$\n",
+    "Important idea:\n",
+    "\n",
+    "> Reset gate filters previous memory before combining it with current input.\n",
+    "\n",
+    "### Final Hidden State\n",
+    "\n",
+    "Combines:\n",
+    "\n",
+    "* old memory\n",
+    "* candidate memory\n",
+    "$$\n",
+    "h_t = (1-z_t) * h_{t-1} + z_t * \\tilde{h}_t\n",
+    "$$\n",
+    "This is the core GRU update equation.\n",
+    "\n",
+    "## Example Walkthrough\n",
+    "\n",
+    "Sentence:\n",
+    "```\n",
+    "[\n",
+    "[\"I\", \"love\", \"machine\", \"learning\"]\n",
+    "]\n",
+    "```\n",
+    "1. Time Step 1\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_1 = I\n",
+    "$$\n",
+    "\n",
+    "Initial hidden state:\n",
+    "\n",
+    "$$\n",
+    "h_0 = 0\n",
+    "$$\n",
+    "\n",
+    "GRU stores information about subject.\n",
+    "\n",
+    "2. Time Step 2\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_2 = love\n",
+    "$$\n",
+    "\n",
+    "Update gate decides:\n",
+    "\n",
+    "* keep subject info\n",
+    "* add emotional context\n",
+    "\n",
+    "Hidden state now contains: `I love`\n",
+    "\n",
+    "3. Time Step 3\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_3 = machine\n",
+    "$$\n",
+    "\n",
+    "Reset gate may reduce less useful information. Model updates semantic context.\n",
+    "\n",
+    "4. Time Step 4\n",
+    "\n",
+    "Input:\n",
+    "\n",
+    "$$\n",
+    "x_4 = learning\n",
+    "$$\n",
+    "\n",
+    "Final hidden state captures meaning: `I love machine learning`\n",
+    "\n",
+    "## Intuition Behind GRU\n",
+    "\n",
+    "### Update Gate\n",
+    "\n",
+    "Acts like a smart balance:\n",
+    "\n",
+    "* keep important past information\n",
+    "* update irrelevant information\n",
+    "\n",
+    "### Reset Gate\n",
+    "\n",
+    "Acts like selective forgetting.\n",
+    "\n",
+    "Useful when:\n",
+    "\n",
+    "* old context no longer matters\n",
+    "* sequence topic changes\n",
+    "\n",
+    "### Visual Intuition\n",
+    "\n",
+    "Suppose sentence:\n",
+    "\n",
+    "> “I grew up in Bangladesh ... now I live in Canada”\n",
+    "\n",
+    "When processing “Canada”:\n",
+    "\n",
+    "* reset gate may reduce importance of old location context\n",
+    "* update gate stores new relevant context\n",
+    "\n",
+    "GRU dynamically updates memory.\n",
+    "\n",
+    "## Bidirectional GRU\n",
+    "\n",
+    "Normal GRU:\n",
+    "\n",
+    "* reads left → right\n",
+    "\n",
+    "Bidirectional GRU:\n",
+    "\n",
+    "* left → right\n",
+    "* right → left\n",
+    "\n",
+    "Useful when future context matters.\n",
+    "\n",
+    "Example: `He sat on the bank`\n",
+    "\n",
+    "Later words help determine meaning of “bank”."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "c1d206cd",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-06-02T16:59:43.878664Z",
+     "iopub.status.busy": "2026-06-02T16:59:43.878334Z",
+     "iopub.status.idle": "2026-06-02T16:59:43.920222Z",
+     "shell.execute_reply": "2026-06-02T16:59:43.919170Z"
+    },
+    "papermill": {
+     "duration": 0.053614,
+     "end_time": "2026-06-02T16:59:43.922277+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.868663+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\">Model: \"sequential_6\"</span>\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1mModel: \"sequential_6\"\u001b[0m\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\"> Layer (type)                    </span>┃<span style=\"font-weight: bold\"> Output Shape           </span>┃<span style=\"font-weight: bold\">       Param # </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ embedding_2 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Embedding</span>)         │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ bidirectional_1 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Bidirectional</span>) │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_10 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_11 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1mLayer (type)                   \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1mOutput Shape          \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      Param #\u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ embedding_2 (\u001b[38;5;33mEmbedding\u001b[0m)         │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ bidirectional_1 (\u001b[38;5;33mBidirectional\u001b[0m) │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_10 (\u001b[38;5;33mDense\u001b[0m)                │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_11 (\u001b[38;5;33mDense\u001b[0m)                │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Total params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Total params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Non-trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Non-trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "import tensorflow as tf\n",
+    "from tensorflow.keras.models import Sequential\n",
+    "from tensorflow.keras.layers import Embedding, GRU, Bidirectional, Dense\n",
+    "\n",
+    "vocab_size = 10000\n",
+    "embedding_dim = 128\n",
+    "max_length = 200\n",
+    "\n",
+    "model = Sequential([\n",
+    "    Embedding(vocab_size, embedding_dim, input_length=max_length),\n",
+    "\n",
+    "    Bidirectional(GRU(128)),\n",
+    "\n",
+    "    Dense(64, activation='relu'),\n",
+    "    Dense(1, activation='sigmoid')\n",
+    "])\n",
+    "\n",
+    "model.compile(\n",
+    "    optimizer='adam',\n",
+    "    loss='binary_crossentropy',\n",
+    "    metrics=['accuracy']\n",
+    ")\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6d1c9914",
+   "metadata": {
+    "papermill": {
+     "duration": 0.006873,
+     "end_time": "2026-06-02T16:59:43.936679+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.929806+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "\n",
+    "## Stacked GRU\n",
+    "\n",
+    "Multiple GRU layers stacked together.\n",
+    "\n",
+    "Lower layers learn:\n",
+    "\n",
+    "* local patterns\n",
+    "\n",
+    "Higher layers learn:\n",
+    "\n",
+    "* abstract semantics"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "b3f22173",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-06-02T16:59:43.953243Z",
+     "iopub.status.busy": "2026-06-02T16:59:43.952847Z",
+     "iopub.status.idle": "2026-06-02T16:59:43.993095Z",
+     "shell.execute_reply": "2026-06-02T16:59:43.992038Z"
+    },
+    "papermill": {
+     "duration": 0.05215,
+     "end_time": "2026-06-02T16:59:43.995800+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:43.943650+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\">Model: \"sequential_7\"</span>\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1mModel: \"sequential_7\"\u001b[0m\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\"> Layer (type)                    </span>┃<span style=\"font-weight: bold\"> Output Shape           </span>┃<span style=\"font-weight: bold\">       Param # </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ embedding_3 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Embedding</span>)         │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ gru_1 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">GRU</span>)                     │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ gru_2 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">GRU</span>)                     │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_12 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_13 (<span style=\"color: #0087ff; text-decoration-color: #0087ff\">Dense</span>)                │ ?                      │   <span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (unbuilt) │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1mLayer (type)                   \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1mOutput Shape          \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      Param #\u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n",
+       "│ embedding_3 (\u001b[38;5;33mEmbedding\u001b[0m)         │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ gru_1 (\u001b[38;5;33mGRU\u001b[0m)                     │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ gru_2 (\u001b[38;5;33mGRU\u001b[0m)                     │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_12 (\u001b[38;5;33mDense\u001b[0m)                │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "├─────────────────────────────────┼────────────────────────┼───────────────┤\n",
+       "│ dense_13 (\u001b[38;5;33mDense\u001b[0m)                │ ?                      │   \u001b[38;5;34m0\u001b[0m (unbuilt) │\n",
+       "└─────────────────────────────────┴────────────────────────┴───────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Total params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Total params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\"><span style=\"font-weight: bold\"> Non-trainable params: </span><span style=\"color: #00af00; text-decoration-color: #00af00\">0</span> (0.00 B)\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "\u001b[1m Non-trainable params: \u001b[0m\u001b[38;5;34m0\u001b[0m (0.00 B)\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "\n",
+    "model = Sequential([\n",
+    "    Embedding(vocab_size, embedding_dim, input_length=max_length),\n",
+    "\n",
+    "    GRU(128, return_sequences=True),\n",
+    "    GRU(64),\n",
+    "\n",
+    "    Dense(64, activation='relu'),\n",
+    "    Dense(1, activation='sigmoid')\n",
+    "])\n",
+    "\n",
+    "model.compile(\n",
+    "    optimizer='adam',\n",
+    "    loss='binary_crossentropy',\n",
+    "    metrics=['accuracy']\n",
+    ")\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f9bef110",
+   "metadata": {
+    "papermill": {
+     "duration": 0.007293,
+     "end_time": "2026-06-02T16:59:44.012145+00:00",
+     "exception": false,
+     "start_time": "2026-06-02T16:59:44.004852+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Charectersticis\n",
+    "\n",
+    "\n",
+    "### Real-World Applications of GRU\n",
+    "\n",
+    "GRU is widely used in:\n",
+    "\n",
+    "| Domain     | Example                    |\n",
+    "| ---------- | -------------------------- |\n",
+    "| NLP        | Translation, summarization |\n",
+    "| Speech     | Voice recognition          |\n",
+    "| Finance    | Stock prediction           |\n",
+    "| Healthcare | ECG signals                |\n",
+    "| IoT        | Sensor forecasting         |\n",
+    "| Chatbots   | Context understanding      |\n",
+    "\n",
+    "### Why GRU Is Popular\n",
+    "\n",
+    "Advantages:\n",
+    "\n",
+    "* simpler architecture\n",
+    "* fewer parameters\n",
+    "* trains faster\n",
+    "* needs less data\n",
+    "* often performs similarly to LSTM\n",
+    "\n",
+    "Especially useful when:\n",
+    "\n",
+    "* dataset is small\n",
+    "* computational resources are limited\n",
+    "\n",
+    "### GRU for Sentiment Analysis\n",
+    "\n",
+    "Sentence:\n",
+    "\n",
+    "> “The movie was not bad”\n",
+    "\n",
+    "GRU can:\n",
+    "\n",
+    "* remember “not”\n",
+    "* combine with “bad”\n",
+    "* understand overall positive meaning\n",
+    "\n",
+    "Basic RNN may incorrectly focus only on “bad”.\n",
+    "\n",
+    "### Why GRU Works Better Than RNN\n",
+    "\n",
+    "GRU solves vanishing gradient problems because:\n",
+    "\n",
+    "* gates control gradient flow\n",
+    "* memory paths are smoother\n",
+    "* information survives longer\n",
+    "\n",
+    "Thus GRU can remember long dependencies.\n",
+    "\n",
+    "### GRU vs LSTM\n",
+    "\n",
+    "| Feature                   | GRU     | LSTM         |\n",
+    "| ------------------------- | ------- | ------------ |\n",
+    "| Gates                     | 2       | 3            |\n",
+    "| Cell state                | No      | Yes          |\n",
+    "| Hidden state              | Single  | Separate     |\n",
+    "| Parameters                | Fewer   | More         |\n",
+    "| Speed                     | Faster  | Slower       |\n",
+    "| Complexity                | Simpler | More complex |\n",
+    "| Long sequence performance | Good    | Excellent    |\n",
+    "\n",
+    "### GRU vs Transformer\n",
+    "\n",
+    "Modern AI models often use Transformers instead of RNN-based architectures.\n",
+    "\n",
+    "However, GRUs are still valuable because they:\n",
+    "\n",
+    "* require less memory\n",
+    "* work well on smaller datasets\n",
+    "* perform efficiently on edge devices\n",
+    "* \n",
+    "### Key Difference from LSTM\n",
+    "\n",
+    "#### LSTM\n",
+    "\n",
+    "Uses:\n",
+    "\n",
+    "* hidden state\n",
+    "* cell state\n",
+    "\n",
+    "#### GRU\n",
+    "\n",
+    "Combines both into:\n",
+    "\n",
+    "* one hidden state\n",
+    "\n",
+    "This makes GRU lightweight."
+   ]
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [
+    {
+     "databundleVersionId": 9698415,
+     "datasetId": 5772283,
+     "isSourceIdPinned": false,
+     "sourceId": 9488054,
+     "sourceType": "datasetVersion"
+    }
+   ],
+   "dockerImageVersionId": 31328,
+   "isGpuEnabled": false,
+   "isInternetEnabled": true,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.12.12"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 40.5474,
+   "end_time": "2026-06-02T16:59:47.196081+00:00",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2026-06-02T16:59:06.648681+00:00",
+   "version": "2.7.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
